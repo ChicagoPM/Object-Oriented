@@ -34,7 +34,7 @@
 
             <!-- Begin slides. Just make elements with a class of slide. -->
 
-            <section class="slide">
+            <section class="slide reverse">
                 <h1>Object-Oriented Perl</h1>
                 <p>Core, Moo, and Moose</p>
                 <p>Doug Bell - Bank of America</p>
@@ -45,8 +45,186 @@
             </section>
 
             <section class="slide">
-                <h1>Here to Stay</h1>
+                <h1>Things<br/>that can<br/>Do Things</h1>
             </section>
+
+            <section class="slide">
+                <h1>Data + Behavior</h1>
+            </section>
+
+            <section class="slide">
+                <h1>Data:<br/>Attributes</h1>
+            </section>
+
+            <section class="slide">
+                <h1>Behavior:<br/>Methods</h1>
+            </section>
+
+            <section class="slide">
+                <h1>Class:<br/>Object Blueprint</h1>
+            </section>
+
+            <section class="slide">
+                <h1>Constructor: Create Objects From Class</h1>
+            </section>
+
+            <section class="slide">
+                <h1>Inheritance:<br/>My Class +<br/>Your Class</h1>
+            </section>
+
+            <section class="slide reverse">
+                <h1>Class Patterns</h1>
+            </section>
+
+            <section class="slide">
+                <h1>Extract<br/>Transform<br/>Load</h1>
+            </section>
+
+            <section class="slide">
+                <h1>Extract: Get Data</h1>
+            </section>
+
+            <section class="slide">
+                <h1>Transform: Modify Data</h1>
+            </section>
+
+            <section class="slide">
+                <h1>Load: Store Data</h1>
+            </section>
+
+            <section class="slide">
+                <h1>Financial Data</h1>
+            </section>
+
+            <section class="slide">
+                <h1>Time Series:<br/>Date/Value Pairs</h1>
+            </section>
+
+            <section class="slide reverse">
+                <h1>Objects in Perl</h1>
+            </section>
+
+            <section class="slide">
+                <h1>Data: Reference (<code>\%data</code>)</h1>
+            </section>
+
+            <section class="slide">
+                <h1>Behavior: <code>sub</code></h1>
+            </section>
+
+            <section class="slide">
+                <h1>Class: <code>package</code></h1>
+            </section>
+
+            <section class="slide">
+                <h1>Object:<br/><code>bless \%data, 'package'</code></h1>
+            </section>
+
+            <section class="slide">
+                <h2>Classic Perl Object</h2>
+                <pre class="perl">
+package Duke;
+sub new {
+    my ( $class, %data ) = @_;
+    return bless \%data, $class;
+}
+                </pre>
+            </section>
+
+            <section class="slide">
+                <h2>Instantiate an Object</h2>
+                <pre class="perl">
+use Duke;
+my $duke = Duke-&gt;new(
+    foo =&gt; "bar",
+    baz =&gt; "fuzz",
+);
+                </pre>
+                <p>Dereference a bareword: Class method</p>
+            </section>
+
+            <section class="slide">
+                <h2>Just a Reference</h2>
+                <pre class="perl">
+say $duke-&gt;{foo}; # "bar"
+say $duke-&gt;{baz}; # "fuzz"
+                </pre>
+                <p>Breaks Encapsulation!</p>
+            </section>
+
+            <section class="slide">
+                <h2>Blessed</h2>
+                <pre class="perl">
+use Scalar::Util qw( blessed );
+say ref $duke;      # "Duke=HASH(0xdeadbeef)"
+say blessed $duke;  # "Duke"
+                </pre>
+                <p>Package name is attached to the reference</p>
+            </section>
+
+            <section class="slide">
+                <h2>Attributes</h2>
+                <pre class="perl">
+package Duke;
+sub new {
+    my ( $class, %args ) = @_;
+    return bless {
+        src   =&gt; $args{src},    # Extract
+        xform =&gt; $args{xform},  # Transform
+        dest  =&gt; $args{dest},   # Load
+    }, $class;
+}
+                </pre>
+            </section>
+
+            <section class="slide">
+                <h2>Mutators</h2>
+                <p>Methods to get/set attributes</p>
+                <pre class="perl">
+package Duke;
+sub src {
+    my ( $self ) = @_;
+    return $self-&gt;{src};
+}
+sub xform {
+    my ( $self ) = @_;
+    return $self-&gt;{xform};
+}
+sub dest {
+    my ( $self, $new_dest ) = @_;
+    if ( $new_dest ) {
+        $self-&gt;{dest} = $new_dest;
+    }
+    return $self-&gt;{dest};
+}
+                </pre>
+                <p>Allow new destinations, but not new sources or transforms.</p>
+            </section>
+
+            <section class="slide">
+                <h2>Methods</h2>
+                <pre class="perl">
+package Duke;
+sub add_xform {
+    my ( $self, $new_xform ) = @_;
+    push @{ $self-&gt;{xform} }, $new_xform;
+    return;
+}
+                </pre>
+                <p>Allow appending extra transform steps.</p>
+            </section>
+
+            <!-- companion classes -->
+            <!-- type checking -->
+            <!-- inheritance -->
+
+            <!-- Moo (Earl) -->
+
+            <!-- Moose -->
+
+            <!-- Moops (Jester) -->
+
+            <!-- Lvalue accessors -->
 
             <!-- End slides. -->
 
