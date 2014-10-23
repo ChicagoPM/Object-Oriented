@@ -1,5 +1,6 @@
 package Earl::Source::DBI;
 use Moo;
+use Earl::TimeSeries;
 with 'Earl::Source';
 has dsn => (
     is => 'ro',
@@ -30,7 +31,7 @@ sub read_data {
         [ $name ]
     );
 
-    return Earl->new(
+    return Earl::TimeSeries->new(
         name => $name,
         data => $data,
     );

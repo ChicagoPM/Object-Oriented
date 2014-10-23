@@ -730,25 +730,215 @@ use Moo::Role;
 requires 'xform_data';
 around xform_data => sub {
     my ( $orig, $self, $in_data ) = @_;
+
     die "input data must be Earl::TimeSeries"
         unless blessed $in_data && $in_data->isa( 'Earl::TimeSeries' );
+
     my $out_data = $self->$orig( $in_data );
+
     die "output data must be Earl::TimeSeries"
         unless blessed $out_data && $out_data->isa( 'Earl::TimeSeries' );
+
     return $out_data;
 };
                 </code></pre>
             </section>
 
             <!-- Moose -->
+            <section class="slide reverse">
+                <h1>Moose</h1>
+            </section>
+
+            <section class="slide">
+                <h1>Meta-Object Protocol</h1>
+            </section>
+
+            <section class="slide">
+                <h1>Class Objects</h1>
+            </section>
+
+            <section class="slide">
+                <h1>Inspect and Alter Classes at Runtime</h1>
+            </section>
+
+            <section class="slide">
+                <h1>Moo Becomes Moose</h1>
+            </section>
+
+            <section class="slide">
+                <h2>Work With Attributes</h2>
+                <pre><code class="language-perl">
+use Earl;
+for my $attr ( Earl->meta->get_all_attributes ) {
+    say $attr->name;
+}
+Earl->meta->add_attribute( 'foo', is => 'ro' );
+my $earl = Earl->new( foo => 'FOO!' );
+say $earl->foo;
+                </code></pre>
+                <p>See Moose::Meta::Class and Class::MOP::Class</p>
+            </section>
+
+            <section class="slide">
+                <h2>Modify Methods</h2>
+                <pre><code class="language-perl">
+use Earl;
+Earl->meta->add_after_method_modifier( run => sub { say "DONE!" } );
+my $earl = Earl->new( ... );
+$earl->run;
+                </code></pre>
+                <p>See Moose::Meta::Class and Class::MOP::Class</p>
+            </section>
+
+            <section class="slide">
+                <h2>Only Change an Instance</h2>
+                <pre><code class="language-perl">
+use Earl;
+my $earl = Earl->new( ... );
+$earl->meta->add_attribute( 'foo', is => 'rw' );
+$earl->foo( "FOO!" );
+say $earl->foo;
+                </code></pre>
+                <p>See Moose::Meta::Class and Class::MOP::Class</p>
+            </section>
+
+            <section class="slide">
+                <h2>Everything's Possible</h2>
+                <ul>
+                    <li>Create a new class</li>
+                    <li>... that extends an existing class</li>
+                    <li>... and add a role to the new class</li>
+                    <li>... modify some methods</li>
+                    <li>... and add some attributes</li>
+                    <li>All at runtime</li>
+                </ul>
+                <p>Compose your classes with configuration</p>
+            </section>
 
             <!-- Moops (Jester) -->
+            <section class="slide reverse">
+                <h1>Moops</h1>
+            </section>
 
-            <!-- Lvalue accessors -->
-            <!-- Method chaining -->
+            <section class="slide">
+                <h1>Class Sugar</h1>
+            </section>
+
+            <section class="slide">
+                <h1>Cutting Edge!</h1>
+            </section>
+
+            <section class="slide">
+                <h1>Provided Without Endorsement</h1>
+            </section>
+
+            <section class="slide">
+                <h2><code>class</code> Function</h2>
+                <pre><code class="language-perl">
+use Moops;
+class Jester {
+    has src => (
+        is => 'ro',
+        required => 1,
+        isa => ConsumerOf['Jester::Source'],
+    );
+    has dest => (
+        is => 'rw',
+        required => 1,
+        isa => ConsumerOf['Jester::Destination'],
+    );
+    has xform => (
+        is => 'ro',
+        default => sub { [] },
+        isa => ArrayRef[ ConsumerOf['Jester::Xform'] ],
+    );
+    method run ( Str $name ) {
+        my $data = $self->src->read_data( $name );
+        for my $xform ( @{ $self->xform } ) {
+            $data = $xform->xform_data( $data );
+        }
+        $self->dest->write_data( $data );
+        return;
+    }
+}
+            </code></pre>
+            </section>
+
+            <section class="slide reverse">
+                <h1>Miscellanea</h1>
+            </section>
+
+            <!-- Lvalue Attributes -->
+            <section class="slide reverse">
+                <h1>Lvalue Attributes</h1>
+            </section>
+
+            <section class="slide">
+                <h2>Assignable Methods</h2>
+                <pre><code class="language-perl">
+package Earl;
+use Moo;
+use MooX::LvalueAttribute;
+use Types::Standard qw( :all );
+has dest => (
+    is => 'rw',
+    required => 1,
+    isa => ConsumerOf['Earl::Destination'],
+    lvalue => 1,
+);
+
+package main;
+my $earl = Earl->new( ... );
+$earl->dest = Earl::Destination->new( ... );
+                </code></pre>
+            </section>
+
             <!-- Inside-out objects -->
+            <section class="slide reverse">
+                <h1>Inside-Out Objects</h1>
+            </section>
+
+            <section class="slide">
+                <h2>Data Not In the Reference</h2>
+                <pre><code class="language-perl">
+package Earl::InsideOut;
+use Scalar::Util qw( refaddr );
+my %sources;
+sub src {
+    my ( $self ) = @_;
+    my $src = $sources{ refaddr $self };
+    return $src;
+}
+                </code></pre>
+                <p>Can prevent memory leaks by breaking cycles</p>
+            </section>
+
+            <!-- Method chaining -->
             <!-- mro -->
             <!-- Signatures -->
+            <section class="slide reverse">
+                <h1>5.20 Signatures</h1>
+            </section>
+
+            <section class="slide">
+                <h2>Sub Signatures</h2>
+                <pre><code class="language-perl">
+package Earl;
+use experimental qw( signatures );
+sub add_xform( $self, $new_xform ) {
+    push @{ $self->xform }, $new_xform;
+    return;
+}
+                </code></pre>
+            </section>
+
+            <section class="slide reverse">
+                <h1>Questions</h1>
+            </section>
+
+            <section class="slide reverse">
+                <h1>Thank You!</h1>
+            </section>
 
             <!-- End slides. -->
 
