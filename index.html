@@ -28,6 +28,12 @@
 
         <!-- Required Modernizr file -->
         <script src="deck.js/modernizr.custom.js"></script>
+
+        <style>
+            .slide.reverse {
+                background-color: #ccf;
+            }
+        </style>
     </head>
     <body>
         <div class="deck-container">
@@ -74,6 +80,14 @@
 
             <section class="slide reverse">
                 <h1>Class Patterns</h1>
+            </section>
+
+            <section class="slide">
+                <h1>Model<br/>View<br/>Controller</h1>
+            </section>
+
+            <section class="slide">
+                <h1>Dependency Injection</h1>
             </section>
 
             <section class="slide">
@@ -135,19 +149,20 @@ sub new {
                 <h2>Instantiate an Object</h2>
                 <pre class="perl">
 use Duke;
-my $duke = Duke-&gt;new(
-    foo =&gt; "bar",
-    baz =&gt; "fuzz",
+my $duke = Duke->new(
+    foo => "bar",
+    baz => "fuzz",
 );
                 </pre>
-                <p>Dereference a bareword: Class method</p>
+                <p>Dereference (<code>-&gt;</code>) a bareword: Class method</p>
+                <p>Class methods get class as first argument</p>
             </section>
 
             <section class="slide">
                 <h2>Just a Reference</h2>
                 <pre class="perl">
-say $duke-&gt;{foo}; # "bar"
-say $duke-&gt;{baz}; # "fuzz"
+say $duke->{foo}; # "bar"
+say $duke->{baz}; # "fuzz"
                 </pre>
                 <p>Breaks Encapsulation!</p>
             </section>
@@ -169,36 +184,12 @@ package Duke;
 sub new {
     my ( $class, %args ) = @_;
     return bless {
-        src   =&gt; $args{src},    # Extract
-        xform =&gt; $args{xform},  # Transform
-        dest  =&gt; $args{dest},   # Load
+        src   => $args{src},            # Extract
+        xform => $args{xform} || [],    # Transform (optional)
+        dest  => $args{dest},           # Load
     }, $class;
 }
                 </pre>
-            </section>
-
-            <section class="slide">
-                <h2>Mutators</h2>
-                <p>Methods to get/set attributes</p>
-                <pre class="perl">
-package Duke;
-sub src {
-    my ( $self ) = @_;
-    return $self-&gt;{src};
-}
-sub xform {
-    my ( $self ) = @_;
-    return $self-&gt;{xform};
-}
-sub dest {
-    my ( $self, $new_dest ) = @_;
-    if ( $new_dest ) {
-        $self-&gt;{dest} = $new_dest;
-    }
-    return $self-&gt;{dest};
-}
-                </pre>
-                <p>Allow new destinations, but not new sources or transforms.</p>
             </section>
 
             <section class="slide">
@@ -207,24 +198,553 @@ sub dest {
 package Duke;
 sub add_xform {
     my ( $self, $new_xform ) = @_;
-    push @{ $self-&gt;{xform} }, $new_xform;
+    push @{ $self->{xform} }, $new_xform;
     return;
 }
                 </pre>
+                <p>Methods get object (<code>$self</code>) as first argument</p>
                 <p>Allow appending extra transform steps.</p>
             </section>
 
+            <section class="slide">
+                <h2>Accessors and Mutators</h2>
+                <p>Methods to get/set attributes</p>
+                <pre class="perl">
+package Duke;
+sub src {
+    my ( $self ) = @_;
+    return $self->{src};
+}
+sub xform {
+    my ( $self ) = @_;
+    return $self->{xform};
+}
+sub dest {
+    my ( $self, $new_dest ) = @_;
+    if ( $new_dest ) {
+        $self->{dest} = $new_dest;
+    }
+    return $self->{dest};
+}
+                </pre>
+                <p>Allow new destinations, but not new sources or transforms.</p>
+            </section>
+
+            <section class="slide">
+                <h2>Calling Methods</h2>
+                <pre class="perl">
+my $duke = Duke->new(
+    src => "NYSE",
+    xform => "FindSpikes",
+    dest => "MySQL",
+);
+say $duke->src;
+$duke->dest( "Postgres" );
+say $duke->dest;
+                </pre>
+                <p>Don't let the caller use the reference directly.</p>
+            </section>
+
             <!-- companion classes -->
-            <!-- type checking -->
+            <section class="slide reverse">
+                <h2>Companion Classes</h2>
+                <p>Objectify All The Things</p>
+                <img src="img/all-the-things.png" />
+                <p>Build an API</p>
+            </section>
+
+            <section class="slide">
+                <h2>Time Series</h2>
+                <p>Data model</p>
+                <pre class="perl">
+package Duke::TimeSeries;
+sub new {
+    my ( $class, %args ) = @_;
+    return bless {
+        name => $args{name},    # Descriptive name
+        data => $args{data},    # Hashref of date => value pairs
+    }, $class;
+}
+sub name {
+    my ( $self ) = @_; # read only
+    return $self->{name};
+}
+sub data {
+    my ( $self, $date ) = @_; # read only
+    return $self->{data}{$date};
+}
+                </pre>
+                <p>Mutability allows hard-to-find bugs</p>
+            </section>
+
+            <section class="slide">
+                <h2>Source</h2>
+                <p>Extract Time Series</p>
+                <pre class="perl">
+package Duke::Source;
+sub new {
+    my ( $class, %args ) = @_;
+    return bless \%args, $class;
+}
+sub read_data {
+    my ( $self, $name ) = @_;
+    my %data;
+    # ...
+    return Duke::TimeSeries->new(
+        name => $name,
+        data => \%data,
+    );
+}
+                </pre>
+            </section>
+
+            <section class="slide">
+                <h2>Destination</h2>
+                <p>Load Time Series</p>
+                <pre class="perl">
+package Duke::Destination;
+sub new {
+    my ( $class, %args ) = @_;
+    return bless \%args, $class;
+}
+sub write_data {
+    my ( $self, $time_series ) = @_;
+    # ...
+    return;
+}
+                </pre>
+                <p>Notice the patterns? We'll do better soon</p>
+            </section>
+
+            <section class="slide">
+                <h2>Transform</h2>
+                <p>Get one time series. Return another.</p>
+                <pre class="perl">
+package Duke::Xform;
+sub new {
+    my ( $class, %args ) = @_;
+    return bless \%args, $class;
+}
+sub xform_data {
+    my ( $self, $in_data ) = @_;
+    my %out_data;
+    # ...
+    return Duke::TimeSeries->new(
+        name => $in_data->name,
+        data => \%out_data,
+    );
+}
+                </pre>
+            </section>
+
+            <section class="slide">
+                <h2>Running The Job</h2>
+                <pre class="perl">
+package Duke;
+sub run {
+    my ( $self, $name ) = @_;
+    my $data = $self->src->read_data( $name );
+    for my $xform ( @{ $self->xform } ) {
+        $data = $xform->xform_data( $data );
+    }
+    $self->dest->write_data( $data );
+    return;
+}
+                </pre>
+            </section>
+
+            <section class="slide">
+                <h2>By Your Powers Combined: ETL</h2>
+                <pre class="perl">
+my $duke = Duke->new(
+    src => Duke::Source->new(),
+    xform => [
+        Duke::Xform->new(),
+        Duke::Xform->new(),
+    ],
+    dest => Duke::Destination->new(),
+);
+$duke->run( 'IBM' );
+                </pre>
+            </section>
+
             <!-- inheritance -->
+            <section class="slide reverse">
+                <h1>Inheritance</h1>
+            </section>
+
+            <section class="slide">
+                <h1>Subclasses</h1>
+            </section>
+
+            <section class="slide">
+                <h1><code>@ISA</code></h1>
+            </section>
+
+            <section class="slide">
+                <h1>
+                    <code>our @ISA = ( 'Class' )</code><br/>
+                </h1>
+            </section>
+
+            <section class="slide">
+                <h1>
+                    <code>use base 'Class'</code><br/>
+                </h1>
+            </section>
+
+            <section class="slide">
+                <h1>
+                    <code>use parent 'Class'</code>
+                </h1>
+            </section>
+
+            <section class="slide">
+                <h2>A Useful Source</h2>
+                <p>Inherits from <code>Duke::Source</code></p>
+                <pre class="perl">
+package Duke::Source::DBI;
+use parent 'Duke::Source';
+# new() is inherited
+sub read_data {
+    my ( $self, $name ) = @_;
+
+    if ( !$self->{_dbh} ) { # Lazy attribute
+        $self->{_dbh} = DBI->connect( $self->{dsn}, $self->{db_user}, $self->{db_pass} );
+    }
+
+    my $data = $self->{_dbh}->selectall_hashref(
+        'SELECT date,value FROM time_series WHERE name=?',
+        'date', # the field used for keys
+        {},
+        [ $name ]
+    );
+
+    return Duke::TimeSeries->new(
+        name => $name,
+        data => $data,
+    );
+}
+                </pre>
+            </section>
+
+            <section class="slide">
+                <h2>Using Subclasses</h2>
+                <p><code>Duke::Source::DBI</code> is a subclass of <code>Duke::Source</code></p>
+                <pre class="perl">
+use Duke::Source::DBI;
+my $src = Duke::Source::DBI->new(
+    dsn => '...',
+    db_user => 'user',
+    db_pass => '***',
+);
+say blessed $src;
+say $src->isa( 'Duke::Source' ) ? 'Yes' : 'No';
+say $src->DOES( 'Duke::Source' ) ? 'Yes' : 'No';
+                </pre>
+            </section>
+
+            <section class="slide reverse">
+                <h1>Plain Old Perl Objects:<br/>Not So Bad?</h1>
+            </section>
+
+            <!-- type checking -->
+            <section class="slide reverse">
+                <h1>Type Constraints</h1>
+            </section>
+
+            <section class="slide">
+                <h2>Only You Can Prevent Runtime Errors</h2>
+                <pre class="perl">
+my $duke = Duke->new(
+    src => Duke::Destination->new(), # Uhoh
+    # no dest?
+);
+# ... 200 lines in 20 files omitted
+$duke->run(); # BOOM!
+                </pre>
+            </section>
+
+            <section class="slide">
+                <h2>Type Checking</h2>
+                <pre class="perl">
+package Duke;
+sub new {
+    my ( $class, %args ) = @_;
+
+    die "src is required and must be Duke::Source object"
+        unless blessed( $args{src} ) && $args{src}->isa( 'Duke::Source' );
+    die "dest is required and must be Duke::Destination object"
+        unless blessed( $args{dest} ) && $args{dest}->isa( 'Duke::Destination' );
+    if ( $args{xform} ) {
+        die "xform must be arrayref of Duke::Xform objects"
+            if ref $args{xform} ne 'ARRAY'
+                || grep {
+                    !blessed( $_ ) || !$_->isa( 'Duke::Xform' )
+                } @{ $args{xform} }
+                ;
+    }
+
+    return bless {
+        src   => $args{src},            # Extract
+        xform => $args{xform} || [],    # Transform (optional)
+        dest  => $args{dest},           # Load
+    }, $class;
+}
+                </pre>
+            </section>
+
+            <section class="slide">
+                <h2>In Subclasses</h2>
+                <p>Override a method with SUPER::</p>
+                <pre class="perl">
+package Duke::Source::DBI;
+use parent 'Duke::Source';
+sub new {
+    my ( $class, %args ) = @_;
+    die "dsn is required" unless $args{dsn};
+    die "db_user is required" unless $args{db_user};
+    die "db_pass is required" unless $args{db_pass};
+    my $self = $class->SUPER::new( %args );
+    return $self;
+}
+                </pre>
+            </section>
+
+            <section class="slide">
+                <h1>Repeat</h1>
+            </section>
+            <section class="slide">
+                <h1>Repeat</h1>
+            </section>
+            <section class="slide">
+                <h1>Repeat</h1>
+            </section>
+
+            <section class="slide">
+                <h1>There's More Than One Way To Do It</h1>
+            </section>
+
+            <section class="slide">
+                <h1>There Must Be a Better Way...</h1>
+            </section>
 
             <!-- Moo (Earl) -->
+            <section class="slide reverse">
+                <h1>Moo</h1>
+            </section>
+
+            <section class="slide">
+                <h1>Modern OO</h1>
+            </section>
+
+            <section class="slide">
+                <h1>Earl ETL</h1>
+            </section>
+
+            <section class="slide">
+                <h2>Attributes</h2>
+                <p><code>has( 'attr', %args )</code></p>
+                <pre class="perl">
+package Earl;
+use Moo;
+has src => (
+    is => 'ro',
+    required => 1,
+    isa => sub {
+        my ( $src ) = @_;
+        die "src must be Earl::Source object"
+            unless blessed $src && $src->isa( 'Earl::Source' );
+    },
+);
+has dest => (
+    is => 'rw',
+    required => 1,
+    isa => sub {
+        my ( $dest ) = @_;
+        die "dest must be Earl::Destination object"
+            unless blessed $dest && $dest->isa( 'Earl::Destination' );
+    },
+);
+has xform => (
+    is => 'ro',
+    default => sub { [] },
+    isa => sub {
+        my ( $xform ) = @_;
+        die "xform must be arrayref of Earl::Xform objects"
+            if ref $xform ne 'ARRAY'
+                || grep {
+                    !blessed( $_ ) || !$_->isa( 'Earl::Xform' )
+                } @{ $xform }
+                ;
+    },
+);
+                </pre>
+            </section>
+
+            <section class="slide">
+                <h2>Moo Automatically...</h2>
+                <ul>
+                    <li>Creates a constructor</li>
+                    <li>Checks for required attributes</li>
+                    <li>Runs the type checks</li>
+                    <li>Sets defaults for optional attributes</li>
+                    <li>Creates read-only accessors</li>
+                    <li>Creates read-write mutators</li>
+                </ul>
+                <p>Reduced 40 lines to 15</p>
+            </section>
+
+            <section class="slide">
+                <h2>Subclasses</h2>
+                <pre class="perl">
+package Earl::Source::DBI;
+use Moo;
+extends 'Earl::Source';
+has dsn => (
+    is => 'ro',
+    required => 1,
+);
+has db_user => (
+    is => 'ro',
+    required => 1,
+);
+has db_pass => (
+    is => 'ro',
+);
+                </pre>
+                <p><code>extends()</code> adds to <code>@ISA</code></p>
+            </section>
+
+            <section class="slide">
+                <h2>Lazy Attributes</h2>
+                <pre class="perl">
+package Earl::Source::DBI;
+has _dbh => (
+    is => 'ro',
+    lazy => 1,
+    default => sub {
+        my ( $self ) = @_;
+        return DBI->connect( $self->{dsn}, $self->{db_user}, $self->{db_pass} );
+    },
+);
+sub read_data {
+    my ( $self, $name ) = @_;
+
+    my $data = $self->_dbh->selectall_hashref(
+        'SELECT date,value FROM time_series WHERE name=?',
+        'date', # the field used for keys
+        {},
+        [ $name ]
+    );
+
+    return Earl::TimeSeries->new(
+        name => $name,
+        data => $data,
+    );
+}
+                </pre>
+                <p>Builds the default when requested</p>
+                <p>Readability: Describe the what, not the how</p>
+            </section>
+
+            <section class="slide reverse">
+                <h1>Type::Tiny</h1>
+            </section>
+
+            <section class="slide">
+                <h2>Better Type Constraints</h2>
+                <pre class="perl">
+package Earl;
+use Moo;
+use Types::Standard qw( :all );
+has src => (
+    is => 'ro',
+    required => 1,
+    isa => InstanceOf['Earl::Source'],
+);
+has dest => (
+    is => 'rw',
+    required => 1,
+    isa => InstanceOf['Earl::Destination'],
+);
+has xform => (
+    is => 'ro',
+    default => sub { [] },
+    isa => ArrayRef[ InstanceOf['Earl::Xform'] ],
+);
+                </pre>
+                <p>Saved 12 lines of code</p>
+                <p>Much more readable: What, not How</p>
+            </section>
+
+            <section class="slide reverse">
+                <h1>Roles</h1>
+            </section>
+
+            <section class="slide">
+                <h1>Roles > Inheritance</h2>
+            </section>
+
+            <section class="slide">
+                <h1>Multiple Roles > Multiple Inheritance</h1>
+            </section>
+
+            <section class="slide">
+                <h1>Roles as Interface</h1>
+            </section>
+
+            <section class="slide">
+                <h2>Source Role</h2>
+                <pre class="perl">
+package Earl::Source;
+use Moo::Role;
+requires 'read_data';
+                </pre>
+                <p>Checks for a read_data method</p>
+            </section>
+
+            <!-- method modifiers -->
+            <section class="slide">
+                <h2>Method Modifiers</h2>
+                <p>Run a method <code>before</code>, <code>after</code>, or <code>around</code>
+                another method</p>
+                <pre class="perl">
+package Earl::Source;
+use Moo::Role;
+requires 'read_data';
+before read_data => sub {
+    my ( $self, $name ) = @_;
+    die "name is required" unless $name;
+};
+                </pre>
+            </section>
+
+            <section class="slide">
+                <h2>around() Modifier</h2>
+                <pre class="perl">
+package Earl::Xform;
+use Moo::Role;
+requires 'xform_data';
+around xform_data => sub {
+    my ( $orig, $self, $in_data ) = @_;
+    die "input data must be Earl::TimeSeries"
+        unless blessed $in_data && $in_data->isa( 'Earl::TimeSeries' );
+    my $out_data = $self->$orig( $in_data );
+    die "output data must be Earl::TimeSeries"
+        unless blessed $out_data && $out_data->isa( 'Earl::TimeSeries' );
+    return $out_data;
+};
+                </pre>
+            </section>
 
             <!-- Moose -->
 
             <!-- Moops (Jester) -->
 
             <!-- Lvalue accessors -->
+            <!-- Method chaining -->
+            <!-- Inside-out objects -->
 
             <!-- End slides. -->
 
